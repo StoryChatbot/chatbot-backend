@@ -29,17 +29,17 @@ class StoryResponse(BaseModel):
 # Initialize the Ollama model with LangChain
 ollama_model = Ollama(model="chatbot")
 
-# Define a prompt template
-prompt_template = PromptTemplate(
-    input_variables=["prompt"],
-    template="""### Instruction:
-{prompt}
-### Response:"""
-)
+def format_story(story: str) -> str:
+    # Remove "### Instruction"
+    story = story.replace("### Instruction", "")
 
-# Create a LangChain with the model and prompt template
-story_chain = prompt_template | ollama_model
+    # Ensure the title shows up without "###"
+    story = story.replace("#### Title:", "<h2>Title:</h2>")
 
+    # Address the bold formatting issue
+    formatted_story = story.replace("**", "<b>").replace("\n", "<br>")
+
+    return formatted_story
 
 @app.post("/generate_story", response_model=StoryResponse)
 def generate_story(request: StoryRequest):
@@ -53,12 +53,15 @@ def generate_story(request: StoryRequest):
         print("hello i m in")
         # Generate story using the LangChain
         story = ollama_model.invoke(prompt)
-        print("the story:", story)
-        return JSONResponse(content={"response": story})
+
+        # Add HTML formatting
+        formatted_story = story.replace("**", "<b>").replace("\n", "<br>")
+
+        print("the story:", formatted_story)
+        return JSONResponse(content={"response": formatted_story})
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500, detail=str(e))
-
 
 
 # Run the application using Uvicorn
